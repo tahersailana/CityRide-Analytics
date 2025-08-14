@@ -16,8 +16,8 @@ CityRide-Analytics is an end-to-end data engineering project that ingests, proce
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
-cd CityRide-Analytics/CityRide-Analytics
+git clone https://github.com/tahersailana/CityRide-Analytics.git
+cd CityRide-Analytics
 ```
 
 ### 2. Start Supporting Services
