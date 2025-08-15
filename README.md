@@ -14,6 +14,38 @@ CityRide-Analytics is an end-to-end data engineering project that ingests, proce
 
 ## Setup Instructions
 
+### 0. Setup Python Virtual Environment
+Create a Python 3.11 virtual environment:
+
+```bash
+python3.11 -m venv venv
+```
+
+Activate the virtual environment:
+
+- On macOS/Linux:
+
+```bash
+source venv/bin/activate
+```
+
+- On Windows:
+
+```bash
+.\venv\Scripts\activate
+```
+
+Install Apache Airflow with constraints (replace `AIRFLOW_VERSION` and `PYTHON_VERSION` with the appropriate versions):
+
+```bash
+AIRFLOW_VERSION=2.7.1
+PYTHON_VERSION=3.11
+CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}"
+```
+
+---
+
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/tahersailana/CityRide-Analytics.git
@@ -69,13 +101,43 @@ docker-compose logs -f airflow-scheduler
 
 ---
 
-### 6. Add DAGs
+### 6. Create Airflow Connections
+After starting Airflow services, create the necessary connections via the Airflow UI:
+
+1. **Postgres Connection (`cityride_postgres`)**  
+   - Go to Admin > Connections > Create  
+   - Set the following:
+     - Conn Id: `cityride_postgres`
+     - Conn Type: `Postgres`
+     - Host: `testdb_postgres` (as per `docker-compose.yml`)
+     - Schema: `cityride_analytics`
+     - Login: `user`
+     - Password: `user123`
+     - Port: `5432`
+
+2. **S3 Connection (`localstack_s3`)**  
+   - Go to Admin > Connections > Create  
+   - Set the following:
+     - Conn Id: `localstack_s3`
+     - Conn Type: `Amazon Web Services`
+     - AWS Access Key ID: `test`
+     - AWS Secret Access Key: `test`
+     - Extra:  
+       ```json
+       {
+         "endpoint_url": "http://localstack:4566"
+       }
+       ```
+
+---
+
+### 7. Add DAGs
 - Place your DAG files in the `./dags` folder.
 - Airflow will automatically detect and parse the DAGs.
 
 ---
 
-### 7. Testing and Running
+### 8. Testing and Running
 - Trigger DAGs manually from the Airflow UI or CLI:
 
 ```bash
