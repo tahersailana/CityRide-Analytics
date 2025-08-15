@@ -35,8 +35,11 @@ dag = DAG(
 )
 
 def process_month_files(**kwargs):
-    year = 2024
-    month = 7
+    conf = kwargs.get('conf', {})
+    year = conf.get('year')
+    month = conf.get('month')
+    if not year or not month:
+        raise ValueError("Year and month must be provided in DAG run conf")
 
     prefix = f"{S3_PREFIX}"
     response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix)
@@ -46,10 +49,10 @@ def process_month_files(**kwargs):
         file_type = s3_key.split('/')[-1].split('_')[0]
         logging.info(f"Processing file: {s3_key} of type {file_type}")
 
-        # # Skip FHV and FHVHV files
-        # if file_type.lower() in ['fhv', 'fhvhv']:
-        #     logging.info(f"Skipping file {s3_key} of type {file_type}")
-        #     continue
+        # Skip FHV and FHVHV files
+        if file_type.lower() == 'fhvhv':
+            logging.info(f"Skipping file {s3_key} of type {file_type}")
+            continue
 
         # Read file in streaming mode using PyArrow ParquetFile and row groups
         obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=s3_key)
