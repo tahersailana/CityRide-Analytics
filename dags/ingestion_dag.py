@@ -2,12 +2,14 @@ from datetime import datetime, timedelta
 import requests
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+
 
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from connections.postgres_conn import run_query
-from connections.s3_conn import upload_file_with_progress_bar
+from connections.s3_conn import upload_file_with_progress_bar, s3_client
 from io import BytesIO
 
 # -------------------
@@ -165,4 +167,15 @@ t_process_files = PythonOperator(
     dag=dag,
 )
 
-t_init_metadata >> t_process_files
+trigger_processing_dag = TriggerDagRunOperator(
+    task_id='trigger_processing_dag',
+    trigger_dag_id='nyc_taxi_processing',
+    conf={
+        "year": "{{ execution_date.year - 1 }}",  # matches get_target_month logic
+        "month": "{{ (execution_date.replace(day=1) - macros.timedelta(days=1)).month }}"
+    },
+    wait_for_completion=False,  # or True if you want to wait
+    dag=dag,
+)
+
+t_init_metadata >> t_process_files >> trigger_processing_dag
