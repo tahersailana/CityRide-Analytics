@@ -34,6 +34,8 @@ services:
       - testdb_postgres
       - localstack
     environment:
+      - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
+      - AIRFLOW__WEBSERVER__SECRET_KEY=supersecurekey123
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password123@testdb_postgres:5432/test_data
       - AIRFLOW__WEBSERVER__RBAC=True

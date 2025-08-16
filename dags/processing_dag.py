@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from connections.postgres_conn import insert_records
-from connections.s3_conn import s3_client
+from connections.s3_conn import S3Connection
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
@@ -14,9 +14,21 @@ from transformations.common_transforms import (
     map_columns_to_table
 )
 
-BUCKET_NAME = "cityride-raw"
+# -------------------
+# INITALIZATION
+# -------------------
+s3_conn = S3Connection()
+s3_client = s3_conn.client
+
+# -------------------
+# CONFIG
+# -------------------
+BUCKET_NAME = s3_conn.bucket_name
 S3_PREFIX = "raw/"
 
+# -------------------
+# DAG DEFINITION
+# -------------------
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -34,10 +46,15 @@ dag = DAG(
     catchup=False,
 )
 
+# -------------------
+# HELPERS
+# -------------------
 def process_month_files(**kwargs):
-    conf = kwargs.get('conf', {})
-    year = conf.get('year')
-    month = conf.get('month')
+    dag_run = kwargs.get("dag_run")
+    conf = dag_run.conf if dag_run else {}
+    year = conf.get("year")
+    month = conf.get("month")
+    logging.info(f'year={year} month={month} ')
     if not year or not month:
         raise ValueError("Year and month must be provided in DAG run conf")
 
@@ -58,7 +75,10 @@ def process_month_files(**kwargs):
         obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=s3_key)
         file_bytes = obj['Body'].read()
         pq_file = pq.ParquetFile(pa.BufferReader(file_bytes))
+        total_rows = sum(pq_file.metadata.row_group(i).num_rows for i in range(pq_file.num_row_groups))
+        logging.info(f'total_rows={total_rows}')
         num_row_groups = pq_file.num_row_groups
+        rows_loaded = 0  # cumulative rows inserted
 
         for rg in range(num_row_groups):
             table = pq_file.read_row_group(rg)
@@ -103,9 +123,23 @@ def process_month_files(**kwargs):
                     records = [tuple(x) for x in chunk.to_numpy()]
                     logging.info(f"Inserting chunk {start//chunk_size + 1} with {len(records)} records")
                     insert_records(sql, records)
+                    rows_loaded += len(records)
                     # Clear memory
                     del chunk, records
                     gc.collect()
+                    # After inserting each row group chunk, update processed_dag_metadata
+                    metadata_sql = """
+                        INSERT INTO cityride_analytics.processed_dag_metadata
+                        (file_type, year, month, status, rows_in_file, rows_loaded, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        ON CONFLICT (file_type, year, month)
+                        DO UPDATE SET
+                            status = EXCLUDED.status,
+                            rows_loaded = EXCLUDED.rows_loaded,
+                            rows_in_file = EXCLUDED.rows_in_file,
+                            updated_at = CURRENT_TIMESTAMP;
+                    """
+                    insert_records(metadata_sql, [(file_type, year, month, 'loaded', total_rows, rows_loaded)])
             except Exception as e:
                 logging.error(f"Error inserting records from file {s3_key} row group {rg}: {e}", exc_info=True)
             finally:
@@ -113,9 +147,11 @@ def process_month_files(**kwargs):
                 del df
                 gc.collect()
 
+# -------------------
+# TASKS
+# -------------------
 t_process_month_files = PythonOperator(
     task_id="process_month_files",
     python_callable=process_month_files,
-    provide_context=True,
     dag=dag,
 )
