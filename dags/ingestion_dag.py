@@ -1,27 +1,27 @@
 from datetime import datetime, timedelta
+import logging
 import requests
+from io import BytesIO
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from connections.postgres_conn import run_query
-from connections.s3_conn import upload_file_with_progress_bar, s3_client
-from io import BytesIO
+from connections.s3_conn import S3Connection
+# from connections.s3_conn import upload_file_with_progress_bar, s3_client
+from configs.dags_config import FILE_TYPES
+from configs.s3_config import S3Config #to-do remove
+config = S3Config().as_dict() #to-do remove
+# -------------------
+# INITALIZATION
+# -------------------
+s3_conn = S3Connection()
 
 # -------------------
 # CONFIG
 # -------------------
-BUCKET_NAME = "cityride-raw"
-FILE_TYPES = {
-    "yellow": "yellow_tripdata_{year}-{month:02d}.parquet",
-    "green": "green_tripdata_{year}-{month:02d}.parquet",
-    "fhv": "fhv_tripdata_{year}-{month:02d}.parquet",
-    # "hvfhv": "fhvhv_tripdata_{year}-{month:02d}.parquet",
-}
+BUCKET_NAME = s3_conn.bucket_name
 TLC_BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 
 # -------------------
@@ -45,7 +45,9 @@ def init_metadata(**context):
         run_query(sql)
 
 def process_files(**context):
-    execution_date = context["execution_date"]
+    logging.info(f"AWS Access Key ID ends with: {config['aws_access_key_id'][-4:]}") #to-do remove
+    logging.info(f"AWS Secret Access Key ends with: {config['aws_secret_access_key'][-4:]}") #to-do remove
+    execution_date = context["execution_date"] 
     year, month = get_target_month(execution_date)
     print(f"[DEBUG] Starting file processing for {year}-{month:02d}")
 
@@ -99,7 +101,7 @@ def process_files(**context):
                     file_obj.seek(0)
                     s3_key = f"raw/{fname}"
                     # s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key)
-                    upload_file_with_progress_bar(file_obj,s3_key,fname)
+                    s3_conn.upload_file_with_progress_bar(file_obj,s3_key,fname)
                     print(f"[INFO] Uploaded {fname} to S3.")
 
                     # Update status to UPLOADED
