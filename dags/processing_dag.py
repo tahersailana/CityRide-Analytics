@@ -54,7 +54,12 @@ def process_month_files(**kwargs):
     conf = dag_run.conf if dag_run else {}
     year = conf.get("year")
     month = conf.get("month")
-    logging.info(f'year={year} month={month} ')
+    # Ensure year and month are integers
+    if isinstance(year, str):
+        year = int(year)
+    if isinstance(month, str):
+        month = int(month)
+    logging.debug(f'year={year} (type={type(year)}) month={month} (type={type(month)})')
     if not year or not month:
         raise ValueError("Year and month must be provided in DAG run conf")
 
@@ -102,6 +107,7 @@ def process_month_files(**kwargs):
 
             # Replace pd.NA / np.nan with None for DB
             df = df.where(pd.notnull(df), None)
+            df = df.replace(["NaN", "nan", "NAN"], None)
 
             # Add debug logs to check for column mismatch
             records = [tuple(x) for x in df.to_numpy()]
