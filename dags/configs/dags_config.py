@@ -4,3 +4,4 @@ FILE_TYPES = {
     "fhv": "fhv_tripdata_{year}-{month:02d}.parquet",
     # "hvfhv": "fhvhv_tripdata_{year}-{month:02d}.parquet",
 }
+DATABASE_TO_RUN = 'SNOWFLAKE' #'POSTGRES'
