@@ -32,7 +32,6 @@ services:
     restart: always
     depends_on:
       - testdb_postgres
-      - localstack
     environment:
       - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
       - AIRFLOW__WEBSERVER__SECRET_KEY=supersecurekey123
@@ -47,6 +46,11 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2g
+    #       cpus: "2.0"
 
   airflow-scheduler:
     build:
@@ -57,7 +61,6 @@ services:
     depends_on:
       - airflow-webserver
       - testdb_postgres
-      - localstack
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:password123@testdb_postgres:5432/test_data
@@ -66,3 +69,8 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2g
+    #       cpus: "2.0"
