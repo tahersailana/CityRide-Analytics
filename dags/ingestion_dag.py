@@ -8,31 +8,18 @@ from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from configs.dags_config import FILE_TYPES
-from configs.dags_config import DATABASE_TO_RUN
 from utils.helpers import run_query
 
 # -------------------
 # INITIALIZATION
 # -------------------
 s3_hook = S3Hook(aws_conn_id="s3_conn")
-from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-
-
-from connections.postgres_conn import run_query
-from connections.s3_conn import S3Connection
-# from connections.s3_conn import upload_file_with_progress_bar, s3_client
-from configs.dags_config import FILE_TYPES
-from configs.s3_config import S3Config #to-do remove
-config = S3Config().as_dict() #to-do remove
-# -------------------
-# INITALIZATION
-# -------------------
-s3_conn = S3Connection()
 
 # -------------------
 # CONFIG
 # -------------------
 BUCKET_NAME = Variable.get("s3_bucket_name")
+DATABASE_TO_RUN = Variable.get("database_to_run")
 TLC_BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 
 # -------------------
@@ -233,26 +220,4 @@ t_process_files = PythonOperator(
 #     dag=dag,
 # )
 
-# t_trigger_processing_dag = TriggerDagRunOperator(
-#     task_id='trigger_processing_dag',
-#     trigger_dag_id='nyc_taxi_processing',
-#     conf={
-#         "year": "{{ execution_date.year - 1 }}",  # matches get_target_month logic
-#         "month": "{{ (execution_date.replace(day=1) - macros.timedelta(days=1)).month }}"
-#     },
-#     wait_for_completion=False,  # or True if you want to wait
-#     dag=dag,
-# )
-
-trigger_processing_dag = TriggerDagRunOperator(
-    task_id='trigger_processing_dag',
-    trigger_dag_id='nyc_taxi_processing',
-    conf={
-        "year": "{{ execution_date.year - 1 }}",  # matches get_target_month logic
-        "month": "{{ (execution_date.replace(day=1) - macros.timedelta(days=1)).month }}"
-    },
-    wait_for_completion=False,  # or True if you want to wait
-    dag=dag,
-)
-
-t_init_metadata >> t_process_files >> trigger_processing_dag
+t_init_metadata >> t_process_files 
