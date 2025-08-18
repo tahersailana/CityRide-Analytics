@@ -35,13 +35,10 @@ source venv/bin/activate
 .\venv\Scripts\activate
 ```
 
-Install Apache Airflow with constraints (replace `AIRFLOW_VERSION` and `PYTHON_VERSION` with the appropriate versions):
+Install dependencies from `requirements.txt`:
 
 ```bash
-AIRFLOW_VERSION=2.7.1
-PYTHON_VERSION=3.11
-CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
-pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}"
+pip install -r requirements.txt
 ```
 
 ---
@@ -49,7 +46,6 @@ pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/tahersailana/CityRide-Analytics.git
-cd CityRide-Analytics
 ```
 
 ### 2. Start Supporting Services
@@ -101,43 +97,39 @@ docker-compose logs -f airflow-scheduler
 
 ---
 
-### 6. Create Airflow Connections
-After starting Airflow services, create the necessary connections via the Airflow UI:
+### 6. Setup DAGs and Environment
 
-1. **Postgres Connection (`cityride_postgres`)**  
-   - Go to Admin > Connections > Create  
-   - Set the following:
-     - Conn Id: `cityride_postgres`
-     - Conn Type: `Postgres`
-     - Host: `testdb_postgres` (as per `docker-compose.yml`)
-     - Schema: `cityride_analytics`
-     - Login: `user`
-     - Password: `user123`
-     - Port: `5432`
+- The repository already contains a `dags` folder. Delete the default `dags` folder created by Airflow and replace it with the one from this repository.
 
-2. **S3 Connection (`localstack_s3`)**  
-   - Go to Admin > Connections > Create  
-   - Set the following:
-     - Conn Id: `localstack_s3`
-     - Conn Type: `Amazon Web Services`
-     - AWS Access Key ID: `test`
-     - AWS Secret Access Key: `test`
-     - Extra:  
-       ```json
-       {
-         "endpoint_url": "http://localstack:4566"
-       }
-       ```
+- Create a `.env` file inside the `dags` folder with the following content:
+  ```
+  AWS_ACCESS_KEY_ID=
+  AWS_SECRET_ACCESS_KEY=
+  AWS_REGION=us-east-1
+  S3_BUCKET_NAME=cityride-analytics
 
----
+  POSTGRES_HOST=testdb_postgres
+  POSTGRES_PORT=5432
+  POSTGRES_DB=test_data
+  POSTGRES_USER=user
+  POSTGRES_PASSWORD=password123
+  ```
 
-### 7. Add DAGs
-- Place your DAG files in the `./dags` folder.
+- If using LocalStack, set these in .env file, rest would be the same:
+  ```
+  endpoint_url = http://localstack:4566
+  AWS_ACCESS_KEY_ID=test
+  AWS_SECRET_ACCESS_KEY=test
+  ```
+
+- Create the necessary tables by executing the SQL files available in the `sql` folder against your Postgres instance.
+
+- Place DAG files in the `./dags` folder.
 - Airflow will automatically detect and parse the DAGs.
 
 ---
 
-### 8. Testing and Running
+### 7. Testing and Running
 - Trigger DAGs manually from the Airflow UI or CLI:
 
 ```bash
