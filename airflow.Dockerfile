@@ -1,5 +1,7 @@
 FROM apache/airflow:2.7.1
 
 USER airflow
-RUN pip install --no-cache-dir apache-airflow-providers-postgres apache-airflow-providers-amazon
+RUN pip install tqdm
+RUN pip install snowflake-connector-python
+RUN pip install --no-cache-dir apache-airflow-providers-postgres apache-airflow-providers-amazon apache-airflow-providers-snowflake
 USER airflow

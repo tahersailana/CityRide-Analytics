@@ -101,38 +101,42 @@ docker-compose logs -f airflow-scheduler
 
 ---
 
-### 6. Create Airflow Connections
-After starting Airflow services, create the necessary connections via the Airflow UI:
+### 6. Setup DAGs and Environment
 
-1. **Postgres Connection (`cityride_postgres`)**  
-   - Go to Admin > Connections > Create  
-   - Set the following:
-     - Conn Id: `cityride_postgres`
+1. Create a Snowflake account.
+
+2. Run the Snowflake user creation script:
+    sql/snowflake_user_creation.sql
+
+3. Create all required tables by executing the SQL files available in the `sql` folder against your Postgres instance or in snowflake.
+
+4. Create the following connections in the Airflow UI:
+
+   - **S3 Connection**:
+     - Conn Id: `s3_conn`
+     - Conn Type: `S3`
+     - Extra: `{"aws_access_key_id": "<your_access_key>", "aws_secret_access_key": "<your_secret_key>", "region_name": "us-east-1", "endpoint_url": "http://localstack:4566"}` (if using LocalStack)
+
+   - **Postgres Connection**:
+     - Conn Id: `postgres_conn`
      - Conn Type: `Postgres`
-     - Host: `testdb_postgres` (as per `docker-compose.yml`)
-     - Schema: `cityride_analytics`
+     - Host: `testdb_postgres` (if your postgres is hosted on Docker else localhost)
+     - Schema: `test_data`
      - Login: `user`
-     - Password: `user123`
+     - Password: `password123`
      - Port: `5432`
 
-2. **S3 Connection (`localstack_s3`)**  
-   - Go to Admin > Connections > Create  
-   - Set the following:
-     - Conn Id: `localstack_s3`
-     - Conn Type: `Amazon Web Services`
-     - AWS Access Key ID: `test`
-     - AWS Secret Access Key: `test`
-     - Extra:  
-       ```json
-       {
-         "endpoint_url": "http://localstack:4566"
-       }
-       ```
+   - **Snowflake Connection**:
+     - Conn Id: `snowflake_default`
+     - Conn Type: `Snowflake`
+     - Login: `<your_snowflake_username>`
+     - Password: `<your_snowflake_password>`
+     - Account: `<your_snowflake_account>`
+     - Warehouse: `<your_snowflake_warehouse>`
+     - Database: `<your_snowflake_database>`
+     - Schema: `<your_snowflake_schema>`
 
----
-
-### 7. Add DAGs
-- Place your DAG files in the `./dags` folder.
+- Place DAG files in the `./dags` folder.
 - Airflow will automatically detect and parse the DAGs.
 
 ---

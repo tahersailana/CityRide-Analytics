@@ -1,25 +1,25 @@
 from datetime import datetime, timedelta
+from io import BytesIO
 import requests
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.models import Variable
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from connections.postgres_conn import run_query
-from connections.s3_conn import upload_file_with_progress_bar
-from io import BytesIO
+from configs.dags_config import FILE_TYPES
+from configs.dags_config import DATABASE_TO_RUN
+from utils.helpers import run_query
+
+# -------------------
+# INITIALIZATION
+# -------------------
+s3_hook = S3Hook(aws_conn_id="s3_conn")
 
 # -------------------
 # CONFIG
 # -------------------
-BUCKET_NAME = "cityride-raw"
-FILE_TYPES = {
-    "yellow": "yellow_tripdata_{year}-{month:02d}.parquet",
-    "green": "green_tripdata_{year}-{month:02d}.parquet",
-    "fhv": "fhv_tripdata_{year}-{month:02d}.parquet",
-    "hvfhv": "fhvhv_tripdata_{year}-{month:02d}.parquet",
-}
+BUCKET_NAME = Variable.get("s3_bucket_name")
 TLC_BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 
 # -------------------
@@ -34,22 +34,36 @@ def init_metadata(**context):
     execution_date = context["execution_date"]
     prev_year, prev_month = get_target_month(execution_date)
     print(f"[DEBUG] Initializing metadata for {prev_year}-{prev_month:02d}")
-    for ftype in FILE_TYPES.keys():
-        sql = f"""
-        INSERT INTO cityride_analytics.file_metadata (year, month, file_type, status)
-        VALUES ({prev_year}, {prev_month}, '{ftype}', 'MISSING')
+
+    postgres_query = f"""
+        INSERT INTO cityride_metadata.file_metadata (year, month, file_type, status)
+        VALUES (%s, %s, %s, 'MISSING')
         ON CONFLICT (year, month, file_type) DO NOTHING;
         """
-        run_query(sql)
+    snowflake_query = f"""
+        MERGE INTO cityride_metadata.file_metadata t
+        USING (SELECT %s AS year, %s AS month, %s AS file_type) s
+        ON t.year = s.year AND t.month = s.month AND t.file_type = s.file_type
+        WHEN NOT MATCHED THEN
+        INSERT (year, month, file_type, status)
+        VALUES (s.year, s.month, s.file_type, 'MISSING');
+        """
+    for ftype in FILE_TYPES.keys():
+        if DATABASE_TO_RUN == "POSTGRES":
+            run_query(postgres_query, (prev_year, prev_month, ftype))
+        elif DATABASE_TO_RUN == "SNOWFLAKE":
+            run_query(snowflake_query, (prev_year, prev_month, ftype))
+        else:
+            raise ValueError(f"Unsupported DATABASE_TO_RUN value: {DATABASE_TO_RUN}")
 
 def process_files(**context):
-    execution_date = context["execution_date"]
+    execution_date = context["execution_date"] 
     year, month = get_target_month(execution_date)
     print(f"[DEBUG] Starting file processing for {year}-{month:02d}")
 
     # Check current file statuses
     sql_status = f"""
-    SELECT file_type, status FROM cityride_analytics.file_metadata
+    SELECT file_type, status FROM cityride_metadata.file_metadata
     WHERE year={year} AND month={month};
     """
     records = run_query(sql_status)
@@ -70,12 +84,23 @@ def process_files(**context):
                 resp = requests.head(url)
                 if resp.status_code == 200:
                     print(f"[INFO] File {fname} found via API. Marking as AVAILABLE.")
-                    sql_update = f"""
-                    UPDATE cityride_analytics.file_metadata
-                    SET status='AVAILABLE', last_checked=now(), updated_at=now()
-                    WHERE year={year} AND month={month} AND file_type='{ftype}';
-                    """
-                    run_query(sql_update)
+                    if DATABASE_TO_RUN == "POSTGRES":
+                        sql_update = f"""
+                        UPDATE cityride_metadata.file_metadata
+                        SET status='AVAILABLE', last_checked=now(), updated_at=now()
+                        WHERE year={year} AND month={month} AND file_type='{ftype}';
+                        """
+                        run_query(sql_update)
+                    elif DATABASE_TO_RUN == "SNOWFLAKE":
+                        sql_update = f"""
+                        MERGE INTO cityride_metadata.file_metadata t
+                        USING (SELECT {year} AS year, {month} AS month, '{ftype}' AS file_type) s
+                        ON t.year = s.year AND t.month = s.month AND t.file_type = s.file_type
+                        WHEN MATCHED THEN UPDATE SET status='AVAILABLE', last_checked=CURRENT_TIMESTAMP(), updated_at=CURRENT_TIMESTAMP();
+                        """
+                        run_query(sql_update)
+                    else:
+                        raise ValueError(f"Unsupported DATABASE_TO_RUN value: {DATABASE_TO_RUN}")
                     status_map[ftype] = 'AVAILABLE'
                 else:
                     print(f"[DEBUG] File {fname} still missing.")
@@ -96,17 +121,27 @@ def process_files(**context):
                         file_obj.write(chunk)
                     file_obj.seek(0)
                     s3_key = f"raw/{fname}"
-                    # s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key)
-                    upload_file_with_progress_bar(file_obj,s3_key,fname)
+                    s3_hook.load_file_obj(file_obj, key=s3_key, bucket_name=BUCKET_NAME, replace=True)
                     print(f"[INFO] Uploaded {fname} to S3.")
 
                     # Update status to UPLOADED
-                    sql_update = f"""
-                    UPDATE cityride_analytics.file_metadata
-                    SET status='UPLOADED', uploaded_at=now(), updated_at=now()
-                    WHERE year={year} AND month={month} AND file_type='{ftype}';
-                    """
-                    run_query(sql_update)
+                    if DATABASE_TO_RUN == "POSTGRES":
+                        sql_update = f"""
+                        UPDATE cityride_metadata.file_metadata
+                        SET status='UPLOADED', uploaded_at=now(), updated_at=now()
+                        WHERE year={year} AND month={month} AND file_type='{ftype}';
+                        """
+                        run_query(sql_update)
+                    elif DATABASE_TO_RUN == "SNOWFLAKE":
+                        sql_update = f"""
+                        MERGE INTO cityride_metadata.file_metadata t
+                        USING (SELECT {year} AS year, {month} AS month, '{ftype}' AS file_type) s
+                        ON t.year = s.year AND t.month = s.month AND t.file_type = s.file_type
+                        WHEN MATCHED THEN UPDATE SET status='UPLOADED', uploaded_at=CURRENT_TIMESTAMP(), updated_at=CURRENT_TIMESTAMP();
+                        """
+                        run_query(sql_update)
+                    else:
+                        raise ValueError(f"Unsupported DATABASE_TO_RUN value: {DATABASE_TO_RUN}")
                     status_map[ftype] = 'UPLOADED'
                 else:
                     print(f"[WARN] Unable to download file {fname}. HTTP status {resp.status_code}")
@@ -114,10 +149,19 @@ def process_files(**context):
                 print(f"[ERROR] Failed to process {fname}: {e}")
 
     # Final verification: check if all files are uploaded
-    sql_final = f"""
-    SELECT COUNT(*) FROM cityride_analytics.file_metadata
-    WHERE year={year} AND month={month} AND status='UPLOADED';
-    """
+    if DATABASE_TO_RUN == "POSTGRES":
+        sql_final = f"""
+        SELECT COUNT(*) FROM cityride_metadata.file_metadata
+        WHERE year={year} AND month={month} AND status='UPLOADED';
+        """
+    elif DATABASE_TO_RUN == "SNOWFLAKE":
+        sql_final = f"""
+        SELECT COUNT(*) FROM cityride_metadata.file_metadata
+        WHERE year={year} AND month={month} AND status='UPLOADED';
+        """
+    else:
+        raise ValueError(f"Unsupported DATABASE_TO_RUN value: {DATABASE_TO_RUN}")
+
     result = run_query(sql_final)
     uploaded_count = result[0][0] if result else 0
     if uploaded_count == len(FILE_TYPES):
@@ -164,5 +208,16 @@ t_process_files = PythonOperator(
     provide_context=True,
     dag=dag,
 )
+
+# t_trigger_processing_dag = TriggerDagRunOperator(
+#     task_id='trigger_processing_dag',
+#     trigger_dag_id='nyc_taxi_processing',
+#     conf={
+#         "year": "{{ execution_date.year - 1 }}",  # matches get_target_month logic
+#         "month": "{{ (execution_date.replace(day=1) - macros.timedelta(days=1)).month }}"
+#     },
+#     wait_for_completion=False,  # or True if you want to wait
+#     dag=dag,
+# )
 
 t_init_metadata >> t_process_files
