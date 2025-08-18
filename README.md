@@ -106,7 +106,8 @@ docker-compose logs -f airflow-scheduler
 ### 6. Create Airflow Connections
 
 Create the following connections in the Airflow UI:
-	1.	Open the Airflow Web UI: http://localhost:8080
+
+	1.  Open the Airflow Web UI: http://localhost:8080
 	2.	Go to Admin → Connections.
 	3.	Click “+” to add a new connection.
 	4.	Fill in the connection details:
@@ -141,8 +142,10 @@ You can configure either Postgres, Snowflake, or both; the DAG behavior will dep
 #### Airflow Variables
 
 Create the following Airflow variables via UI:
+
 	1.	Go to Admin → Variables in the Airflow UI.
-	2.	Click “+” to add a new variable:
+	2.	Click “+” to add a new variable
+    3. Add the values given down as key value pair.
 
   - `BUCKET_NAME` = your S3 bucket name
 
