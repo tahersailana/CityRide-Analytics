@@ -51,32 +51,6 @@ COLUMN_MAP = {
         'SR_Flag': 'sr_flag',
         'Affiliated_base_number': 'affiliated_base_number'
     },
-    'fhvhv': {
-        'hvfhs_license_num': 'hvfhs_license_num',
-        'dispatching_base_num': 'dispatching_base_num',
-        'originating_base_num': 'originating_base_num',
-        'request_datetime': 'request_datetime',
-        'on_scene_datetime': 'on_scene_datetime',
-        'pickup_datetime': 'pickup_datetime',
-        'dropoff_datetime': 'dropoff_datetime',
-        'PULocationID': 'pu_location_id',
-        'DOLocationID': 'do_location_id',
-        'trip_miles': 'trip_miles',
-        'trip_time': 'trip_time',
-        'base_passenger_fare': 'base_passenger_fare',
-        'tolls': 'tolls_amount',
-        'bcf': 'bcf',
-        'sales_tax': 'sales_tax',
-        'congestion_surcharge': 'congestion_surcharge',
-        'airport_fee': 'airport_fee',
-        'tips': 'tips',
-        'driver_pay': 'driver_pay',
-        'shared_request_flag': 'shared_request_flag',
-        'shared_match_flag': 'shared_match_flag',
-        'access_a_ride_flag': 'access_a_ride_flag',
-        'wav_request_flag': 'wav_request_flag',
-        'wav_match_flag': 'wav_match_flag'
-    },
     'green': {
         'VendorID': 'vendor_id',
         'lpep_pickup_datetime': 'pickup_datetime',
@@ -119,7 +93,33 @@ COLUMN_MAP = {
         'total_amount': 'total_amount',
         'congestion_surcharge': 'congestion_surcharge',
         'Airport_fee': 'airport_fee'
-    }
+    },
+    'fhvhv': {
+        'hvfhs_license_num': 'hvfhs_license_num',
+        'dispatching_base_num': 'dispatching_base_num',
+        'originating_base_num': 'originating_base_num',
+        'request_datetime': 'request_datetime',
+        'on_scene_datetime': 'on_scene_datetime',
+        'pickup_datetime': 'pickup_datetime',
+        'dropoff_datetime': 'dropoff_datetime',
+        'PULocationID': 'pu_location_id',
+        'DOLocationID': 'do_location_id',
+        'trip_miles': 'trip_miles',
+        'trip_time': 'trip_time',
+        'base_passenger_fare': 'base_passenger_fare',
+        'tolls': 'tolls_amount',
+        'bcf': 'bcf',
+        'sales_tax': 'sales_tax',
+        'congestion_surcharge': 'congestion_surcharge',
+        'airport_fee': 'airport_fee',
+        'tips': 'tips',
+        'driver_pay': 'driver_pay',
+        'shared_request_flag': 'shared_request_flag',
+        'shared_match_flag': 'shared_match_flag',
+        'access_a_ride_flag': 'access_a_ride_flag',
+        'wav_request_flag': 'wav_request_flag',
+        'wav_match_flag': 'wav_match_flag'
+    },
 }
 
 def map_columns_to_table(df: pd.DataFrame, file_type: str, table_columns=TABLE_COLUMNS) -> pd.DataFrame:
