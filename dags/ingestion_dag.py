@@ -26,9 +26,10 @@ TLC_BASE_URL = "https://d37ci6vzurychx.cloudfront.net/trip-data"
 # HELPERS
 # -------------------
 def get_target_month(execution_date):
-    target = (execution_date.replace(day=1) - timedelta(days=1))
-    print(f"[DEBUG] Calculated target date: {target.year}-{target.month:02d} (one year back from current run’s target)")
-    return target.year - 1, target.month
+    target_year = execution_date.year - 1
+    target_month = execution_date.month
+    print(f"[DEBUG] Calculated target date: {target_year}-{target_month:02d} (one year back from current run)")
+    return target_year, target_month
 
 def init_metadata(**context):
     execution_date = context["execution_date"]
@@ -209,15 +210,15 @@ t_process_files = PythonOperator(
     dag=dag,
 )
 
-# t_trigger_processing_dag = TriggerDagRunOperator(
-#     task_id='trigger_processing_dag',
-#     trigger_dag_id='nyc_taxi_processing',
-#     conf={
-#         "year": "{{ execution_date.year - 1 }}",  # matches get_target_month logic
-#         "month": "{{ (execution_date.replace(day=1) - macros.timedelta(days=1)).month }}"
-#     },
-#     wait_for_completion=False,  # or True if you want to wait
-#     dag=dag,
-# )
+t_trigger_processing_dag = TriggerDagRunOperator(
+    task_id='trigger_processing_dag',
+    trigger_dag_id='nyc_taxi_processing',
+    conf={
+        "year": "{{ execution_date.year - 1 }}",
+        "month": "{{ execution_date.month }}"  # Changed from the complex calculation
+    },
+    wait_for_completion=False,
+    dag=dag,
+)
 
-t_init_metadata >> t_process_files 
+t_init_metadata >> t_process_files >> t_trigger_processing_dag

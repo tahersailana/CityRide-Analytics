@@ -1,7 +1,9 @@
-from configs.dags_config import DATABASE_TO_RUN
+from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 import psycopg2
 import snowflake.connector
+
+DATABASE_TO_RUN = Variable.get("database_to_run")
 
 def run_query(query, params=None):
     if DATABASE_TO_RUN == "POSTGRES":
