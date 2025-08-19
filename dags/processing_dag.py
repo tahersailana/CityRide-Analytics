@@ -192,6 +192,16 @@ def get_trip_data_insert_query(file_type, year, month):
         raise ValueError(f"Unsupported file type: {file_type}")
 
 def process_snowflake_file(file_type, year, month):
+    status_check_sql = """
+        SELECT status FROM CITYRIDE_METADATA.etl_processing_log
+        WHERE year = %s AND month = %s AND file_type = %s
+        LIMIT 1;
+        """
+    result = run_query(status_check_sql, (year, month, file_type))
+    if result and result[0][0] == 'loaded':
+        logging.info(f"Data for year={year} month={month} is already loaded. Exiting DAG without processing.")
+        return
+        
     """Process file using Snowflake COPY commands"""
     logging.info(f"Processing {file_type} file for {year}-{month:02d} using Snowflake")
     
@@ -379,6 +389,15 @@ def process_month_files(**kwargs):
                 continue
                 
     elif DATABASE_TO_RUN == "POSTGRES":
+        status_check_sql = """
+        SELECT status FROM cityride_analytics.processed_dag_metadata
+        WHERE year = %s AND month = %s
+        LIMIT 1;
+        """
+        result = run_query(status_check_sql, (year, month))
+        if result and result[0][0] == 'loaded':
+            logging.info(f"Data for year={year} month={month} is already loaded. Exiting DAG without processing.")
+            return
         # For PostgreSQL, use existing logic
         prefix = f"{S3_PREFIX}"
         keys = s3_hook.list_keys(bucket_name=BUCKET_NAME, prefix=prefix)
