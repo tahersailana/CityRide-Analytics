@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd
@@ -428,3 +429,14 @@ t_process_month_files = PythonOperator(
     python_callable=process_month_files,
     dag=dag,
 )
+t_trigger_analytics_dag = TriggerDagRunOperator(
+    task_id="trigger_analytics_dag",
+    trigger_dag_id="nyc_trip_analytics_etl",
+    conf={
+        "year": "{{ dag_run.conf['year'] }}",
+        "month": "{{ dag_run.conf['month'] }}"
+    },
+    wait_for_completion=False,
+    dag=dag,
+)
+t_process_month_files >> t_trigger_analytics_dag
