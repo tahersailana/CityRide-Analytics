@@ -112,6 +112,18 @@ def load_demand_data():
         
         query = "SELECT * FROM vw_hourly_demand_heatmap ORDER BY day_of_week, hour"
         df = pd.read_sql(query, conn)
+        # Normalize day names (map abbreviations to full names)
+        day_mapping = {
+            "Sun": "Sunday",
+            "Mon": "Monday",
+            "Tue": "Tuesday",
+            "Wed": "Wednesday",
+            "Thu": "Thursday",
+            "Fri": "Friday",
+            "Sat": "Saturday"
+        }
+        if 'DAY_NAME' in df.columns:
+            df['DAY_NAME'] = df['DAY_NAME'].map(day_mapping).fillna(df['DAY_NAME'])
         conn.close()
         
         return df
@@ -152,14 +164,15 @@ def create_overall_heatmap(df):
         'TRIP_COUNT': 'sum',
         'DEMAND_INTENSITY': 'mean'
     }).reset_index()
-    
+
     # Create pivot table for heatmap
     heatmap_data = agg_df.pivot(index='DAY_NAME', columns='HOUR', values='DEMAND_INTENSITY')
-    
+    # Fill NaN values with 0 for better visualization
+    heatmap_data = heatmap_data.fillna(0)
+    # Debugging: Show heatmap data after pivot
     # Reorder days
     day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     heatmap_data = heatmap_data.reindex(day_order)
-    
     fig = px.imshow(
         heatmap_data,
         labels=dict(x="Hour of Day", y="Day of Week", color="Demand Intensity"),
@@ -167,9 +180,11 @@ def create_overall_heatmap(df):
         y=day_order,
         color_continuous_scale="Viridis",
         title="Overall Demand Intensity Heatmap",
-        aspect="auto"
+        aspect="auto",
+        zmin=0,
+        zmax=100
     )
-    
+
     fig.update_layout(
         height=400,
         title_font_size=16,
@@ -179,23 +194,23 @@ def create_overall_heatmap(df):
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color='black')
     )
-    
+
     return fig
 
 def create_service_heatmap(df, service_name):
     """Create heatmap for a specific service"""
     service_df = df[df['SERVICE_NAME'] == service_name]
-    
+
     # Create pivot table
     heatmap_data = service_df.pivot(index='DAY_NAME', columns='HOUR', values='DEMAND_INTENSITY')
-    
+
     # Reorder days
     day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     heatmap_data = heatmap_data.reindex(day_order)
-    
+
     # Fill NaN values with 0 for better visualization
     heatmap_data = heatmap_data.fillna(0)
-    
+    # Debugging: Show heatmap data after pivot
     fig = px.imshow(
         heatmap_data,
         labels=dict(x="Hour of Day", y="Day of Week", color="Demand Intensity"),
@@ -203,9 +218,11 @@ def create_service_heatmap(df, service_name):
         y=day_order,
         color_continuous_scale="RdYlBu_r",
         title=f"Demand Heatmap: {service_name}",
-        aspect="auto"
+        aspect="auto",
+        zmin=0,
+        zmax=100
     )
-    
+
     fig.update_layout(
         height=350,
         title_font_size=14,
@@ -213,7 +230,7 @@ def create_service_heatmap(df, service_name):
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color='black')
     )
-    
+
     return fig
 
 def create_hourly_pattern_chart(df):
