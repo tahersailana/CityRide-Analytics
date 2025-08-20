@@ -3,6 +3,7 @@ from executive_dashboard import show_executive_dashboard
 from service_comparison import show_service_comparison
 from demand_heatmap import show_demand_heatmap
 from top_routes import show_top_routes
+from monthly_trends import show_monthly_trends
 
 # Page configuration
 st.set_page_config(
@@ -85,6 +86,12 @@ def main():
             st.session_state.current_page = 'service'
             st.rerun()
         
+        if st.button("📈 Monthly Trends", use_container_width=True,
+                    type="primary" if st.session_state.current_page == 'trends' else "secondary",
+                    key="nav_trends"):
+            st.session_state.current_page = 'trends'
+            st.rerun()
+        
         if st.button("🔥 Demand Heatmap", use_container_width=True,
                     type="primary" if st.session_state.current_page == 'heatmap' else "secondary",
                     key="nav_heatmap"):
@@ -124,6 +131,18 @@ def main():
             </ul>
             </div>
             """, unsafe_allow_html=True)
+        elif st.session_state.current_page == 'trends':
+            st.markdown("""
+            <div class="sidebar-section">
+            <strong>📈 Monthly Trends</strong>
+            <ul>
+            <li>Month-over-month growth</li>
+            <li>Time series analysis</li>
+            <li>Service trend comparison</li>
+            <li>Performance patterns</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
         elif st.session_state.current_page == 'heatmap':
             st.markdown("""
             <div class="sidebar-section">
@@ -159,12 +178,13 @@ def main():
         # Dashboard info
         st.markdown("---")
         st.markdown("**💡 Dashboard Info:**")
-        page_count = 4  # Updated count
+        page_count = 5  # Updated count
         st.metric("Total Views", page_count, "Analytics Pages")
         
         current_page_names = {
             'executive': 'Executive KPIs',
-            'service': 'Service Comparison', 
+            'service': 'Service Comparison',
+            'trends': 'Monthly Trends',
             'heatmap': 'Demand Heatmap',
             'routes': 'Top Routes'
         }
@@ -187,6 +207,14 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         show_service_comparison()
+    
+    elif st.session_state.current_page == 'trends':
+        st.markdown("""
+        <div class="page-selector">
+            <strong>📈 Currently Viewing:</strong> Monthly Trends Dashboard
+        </div>
+        """, unsafe_allow_html=True)
+        show_monthly_trends()
     
     elif st.session_state.current_page == 'heatmap':
         st.markdown("""
@@ -214,9 +242,13 @@ def main():
             if st.button("⬅️ Executive KPIs", use_container_width=True, key="footer_prev_service"):
                 st.session_state.current_page = 'executive'
                 st.rerun()
-        elif st.session_state.current_page == 'heatmap':
-            if st.button("⬅️ Service Comparison", use_container_width=True, key="footer_prev_heatmap"):
+        elif st.session_state.current_page == 'trends':
+            if st.button("⬅️ Service Comparison", use_container_width=True, key="footer_prev_trends"):
                 st.session_state.current_page = 'service'
+                st.rerun()
+        elif st.session_state.current_page == 'heatmap':
+            if st.button("⬅️ Monthly Trends", use_container_width=True, key="footer_prev_heatmap"):
+                st.session_state.current_page = 'trends'
                 st.rerun()
         elif st.session_state.current_page == 'routes':
             if st.button("⬅️ Demand Heatmap", use_container_width=True, key="footer_prev_routes"):
@@ -227,14 +259,15 @@ def main():
         # Current page indicator with navigation breadcrumb
         page_names = {
             'executive': '📊 Executive KPIs',
-            'service': '🔄 Service Comparison', 
+            'service': '🔄 Service Comparison',
+            'trends': '📈 Monthly Trends',
             'heatmap': '🔥 Demand Heatmap',
             'routes': '🗺️ Top Routes'
         }
         current_name = page_names.get(st.session_state.current_page, st.session_state.current_page.title())
         
         # Show page position
-        page_order = ['executive', 'service', 'heatmap', 'routes']
+        page_order = ['executive', 'service', 'trends', 'heatmap', 'routes']
         current_position = page_order.index(st.session_state.current_page) + 1
         total_pages = len(page_order)
         
@@ -252,7 +285,11 @@ def main():
                 st.session_state.current_page = 'service'
                 st.rerun()
         elif st.session_state.current_page == 'service':
-            if st.button("Demand Heatmap ➡️", use_container_width=True, key="footer_next_service"):
+            if st.button("Monthly Trends ➡️", use_container_width=True, key="footer_next_service"):
+                st.session_state.current_page = 'trends'
+                st.rerun()
+        elif st.session_state.current_page == 'trends':
+            if st.button("Demand Heatmap ➡️", use_container_width=True, key="footer_next_trends"):
                 st.session_state.current_page = 'heatmap'
                 st.rerun()
         elif st.session_state.current_page == 'heatmap':
