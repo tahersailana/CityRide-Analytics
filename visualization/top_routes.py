@@ -123,6 +123,10 @@ def load_routes_css():
             border-radius: 0.5rem;
             margin: 0.5rem 0;
             border-left: 4px solid #667eea;
+            color: #2c3e50 !important;
+        }
+        .borough-flow strong {
+            color: #2c3e50 !important;
         }
     </style>
     """, unsafe_allow_html=True)

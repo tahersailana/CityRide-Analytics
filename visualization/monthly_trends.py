@@ -91,6 +91,9 @@ def load_trends_css():
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin: 1rem 0;
         }
+        .service-card h4 {
+            color: #2c3e50 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -350,7 +353,7 @@ def show_monthly_trends():
     
     for service_name, row in service_performance.iterrows():
         st.markdown(f"""
-        <div class="trends-card">
+        <div class="trends-card service-card">
             <h4>🚗 {service_name}</h4>
         </div>
         """, unsafe_allow_html=True)

@@ -4,6 +4,7 @@ from service_comparison import show_service_comparison
 from demand_heatmap import show_demand_heatmap
 from top_routes import show_top_routes
 from monthly_trends import show_monthly_trends
+from airport_traffic import show_airport_traffic
 
 # Page configuration
 st.set_page_config(
@@ -103,6 +104,12 @@ def main():
                     key="nav_routes"):
             st.session_state.current_page = 'routes'
             st.rerun()
+
+        if st.button("✈️ Airport Traffic", use_container_width=True,
+                    type="primary" if st.session_state.current_page == 'airport' else "secondary",
+                    key="nav_airport"):
+            st.session_state.current_page = 'airport'
+            st.rerun()
         
         st.markdown("---")
         
@@ -155,6 +162,18 @@ def main():
             </ul>
             </div>
             """, unsafe_allow_html=True)
+        elif st.session_state.current_page == 'airport':
+            st.markdown("""
+            <div class="sidebar-section">
+            <strong>✈️ Airport Traffic</strong>
+            <ul>
+            <li>Airport passenger flows</li>
+            <li>Flight and ground transport integration</li>
+            <li>Peak travel times</li>
+            <li>Traffic forecasts</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
         else:  # routes
             st.markdown("""
             <div class="sidebar-section">
@@ -178,7 +197,7 @@ def main():
         # Dashboard info
         st.markdown("---")
         st.markdown("**💡 Dashboard Info:**")
-        page_count = 5  # Updated count
+        page_count = 6  # Updated count
         st.metric("Total Views", page_count, "Analytics Pages")
         
         current_page_names = {
@@ -186,7 +205,8 @@ def main():
             'service': 'Service Comparison',
             'trends': 'Monthly Trends',
             'heatmap': 'Demand Heatmap',
-            'routes': 'Top Routes'
+            'routes': 'Top Routes',
+            'airport': 'Airport Traffic'
         }
         current_name = current_page_names.get(st.session_state.current_page, 'Unknown')
         st.caption(f"Currently viewing: **{current_name}**")
@@ -231,6 +251,14 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         show_top_routes()
+
+    elif st.session_state.current_page == 'airport':
+        st.markdown("""
+        <div class="page-selector">
+            <strong>✈️ Currently Viewing:</strong> Airport Traffic Dashboard
+        </div>
+        """, unsafe_allow_html=True)
+        show_airport_traffic()
     
     # Footer navigation (alternative to sidebar)
     st.markdown("---")
@@ -254,6 +282,10 @@ def main():
             if st.button("⬅️ Demand Heatmap", use_container_width=True, key="footer_prev_routes"):
                 st.session_state.current_page = 'heatmap'
                 st.rerun()
+        elif st.session_state.current_page == 'airport':
+            if st.button("⬅️ Top Routes", use_container_width=True, key="footer_prev_airport"):
+                st.session_state.current_page = 'routes'
+                st.rerun()
     
     with col2:
         # Current page indicator with navigation breadcrumb
@@ -262,12 +294,13 @@ def main():
             'service': '🔄 Service Comparison',
             'trends': '📈 Monthly Trends',
             'heatmap': '🔥 Demand Heatmap',
-            'routes': '🗺️ Top Routes'
+            'routes': '🗺️ Top Routes',
+            'airport': '✈️ Airport Traffic'
         }
         current_name = page_names.get(st.session_state.current_page, st.session_state.current_page.title())
         
         # Show page position
-        page_order = ['executive', 'service', 'trends', 'heatmap', 'routes']
+        page_order = ['executive', 'service', 'trends', 'heatmap', 'routes', 'airport']
         current_position = page_order.index(st.session_state.current_page) + 1
         total_pages = len(page_order)
         
@@ -295,6 +328,10 @@ def main():
         elif st.session_state.current_page == 'heatmap':
             if st.button("Top Routes ➡️", use_container_width=True, key="footer_next_heatmap"):
                 st.session_state.current_page = 'routes'
+                st.rerun()
+        elif st.session_state.current_page == 'routes':
+            if st.button("Airport Traffic ➡️", use_container_width=True, key="footer_next_routes"):
+                st.session_state.current_page = 'airport'
                 st.rerun()
     
     # Additional footer info
