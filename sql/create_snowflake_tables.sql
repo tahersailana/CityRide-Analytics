@@ -32,6 +32,19 @@ CREATE TABLE CITYRIDE_METADATA.etl_processing_log (
     UNIQUE (file_type, year, month)
 );
 
+CREATE TABLE CITYRIDE_METADATA.etl_analytics_log (
+    id BIGINT AUTOINCREMENT PRIMARY KEY,
+    dag_name VARCHAR(200) NOT NULL,           
+    year INT NOT NULL,
+    month INT NOT NULL,
+    fact_table_name VARCHAR(200) NOT NULL,    -- e.g., 'fact_trips', 'fact_trips_daily_agg'
+    status VARCHAR(50) NOT NULL,              -- 'started', 'loaded', 'failed', 'skipped'
+    record_count INT,                         -- rows inserted
+    error_message STRING,                     -- if failed
+    started_at TIMESTAMP_TZ DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP_TZ
+);
+
                                                     -- create raw file tables 
 
 -- TABLE yellow_raw
