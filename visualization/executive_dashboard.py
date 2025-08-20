@@ -1,7 +1,8 @@
 import streamlit as st
-import snowflake.connector
 import pandas as pd
 import numpy as np
+
+from snowflake_connector import load_data_from_source
 
 # Custom CSS for better styling
 def load_css():
@@ -67,19 +68,9 @@ def load_css():
 def load_executive_data():
     """Load executive KPI data from Snowflake"""
     try:
-        conn = snowflake.connector.connect(
-            user='AIRFLOW_USER',
-            password='StrongPassword123!',
-            account='ekorbhk-no98289',
-            warehouse='AIRFLOW_WH',
-            database='CITYRIDE_ANALYTICS',
-            schema='CITYRIDE_ANALYTICS',
-            role='AIRFLOW_ROLE'
-        )
         
         query = "SELECT * FROM vw_executive_kpis"
-        df = pd.read_sql(query, conn)
-        conn.close()
+        df = load_data_from_source(query)
         
         return df
     except Exception as e:

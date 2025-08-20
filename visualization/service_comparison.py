@@ -1,10 +1,11 @@
 import streamlit as st
-import snowflake.connector
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+from snowflake_connector import load_data_from_source
 
 # Custom CSS for service comparison styling
 def load_service_css():
@@ -80,21 +81,10 @@ def load_service_css():
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_service_data():
     """Load service comparison data from Snowflake"""
-    try:
-        conn = snowflake.connector.connect(
-            user='AIRFLOW_USER',
-            password='StrongPassword123!',
-            account='ekorbhk-no98289',
-            warehouse='AIRFLOW_WH',
-            database='CITYRIDE_ANALYTICS',
-            schema='CITYRIDE_ANALYTICS',
-            role='AIRFLOW_ROLE'
-        )
-        
+    try:        
         query = "SELECT * FROM vw_service_comparison ORDER BY total_revenue DESC"
-        df = pd.read_sql(query, conn)
-        conn.close()
-        
+        df = load_data_from_source(query)
+
         return df
     except Exception as e:
         st.error(f"Error connecting to Snowflake: {str(e)}")

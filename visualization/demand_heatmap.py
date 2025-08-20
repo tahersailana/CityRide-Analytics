@@ -1,11 +1,8 @@
 import streamlit as st
-import snowflake.connector
 import pandas as pd
-import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import plotly.figure_factory as ff
+
+from snowflake_connector import load_data_from_source
 
 # Custom CSS for demand heatmap styling
 def load_heatmap_css():
@@ -99,19 +96,9 @@ def load_heatmap_css():
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_demand_data():
     """Load hourly demand heatmap data from Snowflake"""
-    try:
-        conn = snowflake.connector.connect(
-            user='AIRFLOW_USER',
-            password='StrongPassword123!',
-            account='ekorbhk-no98289',
-            warehouse='AIRFLOW_WH',
-            database='CITYRIDE_ANALYTICS',
-            schema='CITYRIDE_ANALYTICS',
-            role='AIRFLOW_ROLE'
-        )
-        
+    try:        
         query = "SELECT * FROM vw_hourly_demand_heatmap ORDER BY day_of_week, hour"
-        df = pd.read_sql(query, conn)
+        df = load_data_from_source(query)
         # Normalize day names (map abbreviations to full names)
         day_mapping = {
             "Sun": "Sunday",
@@ -124,8 +111,7 @@ def load_demand_data():
         }
         if 'DAY_NAME' in df.columns:
             df['DAY_NAME'] = df['DAY_NAME'].map(day_mapping).fillna(df['DAY_NAME'])
-        conn.close()
-        
+
         return df
     except Exception as e:
         st.error(f"Error connecting to Snowflake: {str(e)}")

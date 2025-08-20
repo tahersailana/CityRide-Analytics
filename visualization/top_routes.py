@@ -7,6 +7,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 
+from snowflake_connector import load_data_from_source
+
 # Custom CSS for top routes styling
 def load_routes_css():
     st.markdown("""
@@ -128,20 +130,9 @@ def load_routes_css():
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_routes_data():
     """Load top routes data from Snowflake"""
-    try:
-        conn = snowflake.connector.connect(
-            user='AIRFLOW_USER',
-            password='StrongPassword123!',
-            account='ekorbhk-no98289',
-            warehouse='AIRFLOW_WH',
-            database='CITYRIDE_ANALYTICS',
-            schema='CITYRIDE_ANALYTICS',
-            role='AIRFLOW_ROLE'
-        )
-        
+    try:        
         query = "SELECT * FROM vw_top_routes ORDER BY trip_count DESC"
-        df = pd.read_sql(query, conn)
-        conn.close()
+        df = load_data_from_source(query)
         
         return df
     except Exception as e:
