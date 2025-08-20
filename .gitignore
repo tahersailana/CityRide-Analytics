@@ -212,3 +212,6 @@ fhv_*
 fhvhv*
 green_*
 yellow_*
+
+views_csv_data
+.DS_Store
