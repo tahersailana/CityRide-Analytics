@@ -159,7 +159,7 @@ If you choose Snowflake, refer to the Snowflake account creation guide:
 
 ---
 
-### 7. Create Metadata, Fact, and Dimension Tables
+### 7. Create Metadata, Fact, Dimension Tables and Views
 
 - Execute the SQL files in the `sql` folder to create all necessary tables in the database (Postgres or Snowflake) before running DAGs.
 - Ensure tables for metadata, fact, and dimensions are created according to their respective schemas.
@@ -167,24 +167,52 @@ If you choose Snowflake, refer to the Snowflake account creation guide:
 ---
 
 ### 8. Testing and Running
-- Trigger DAGs manually from the Airflow UI or CLI:
+
+Now after the setup, if all DAGs are ready, Snowflake metadata tables, dimension tables and views are ready, you can load the data in tables through backfill using this command:
 
 ```bash
-docker-compose exec airflow-webserver airflow dags trigger <dag_id>
+curl -X POST "http://localhost:8080/api/v1/dags/nyc_taxi_ingestion/dagRuns" \
+-H "Content-Type: application/json" \
+-u "admin:admin" \
+-d '{"execution_date": "2025-07-05T00:00:00Z"}'
 ```
 
-- Monitor task execution and logs in the UI.
+Note: Change the month of `execution_date` to load the corresponding data. The data loaded will be from the previous year of the month you provide.  
+For example: for `execution_date` **2025-07-05**, the data load will be done for **2024-07**.  
+Load the data for 5-6 months to get meaningful results.
 
----
+After that, run the dashboard with the following command to see the analytics:
+
+```bash
+streamlit run visualization/main.py
+```
+
+
+**Note:** The dashboard pulls data from views and auto-refreshes every 5 minutes.
+
+## Dashboard Previews
+
+### Executive KPI
+![Executive KPI](images/executive_kpi.png)
+
+### Monthly Trends
+![Monthly Trends](images/montly trends.png)
+
+### Service Comparison
+![Service Comparison](images/service comparison.png)
+
+### Demand Heatmaps
+![Demand Heatmaps](images/demand heatmaps.png)
+
+### Top Routes
+![Top Routes](images/top routes.png)
+
+### Airport Traffic
+![Airport Traffic](images/airport traffic.png)
 
 ## Notes
 - **LocalStack** emulates AWS S3; only start if using LocalStack for local testing.
 - **Database Choice**: The DAG reads `DATABASE_TO_RUN` variable to determine which database to operate on.
 - **Airflow Executor**: The project uses `LocalExecutor` for simplicity; Celery workers are not required.
 - **Backfill Support**: Airflow DAGs can be backfilled manually for past months using:
-
-```bash
-docker-compose exec airflow-webserver airflow dags backfill <dag_id> -s <start_date> -e <end_date>
-```
-
 - Ignore deprecation warnings regarding `sql_alchemy_conn`; they do not prevent functionality.
