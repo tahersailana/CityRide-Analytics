@@ -196,19 +196,19 @@ streamlit run visualization/main.py
 ![Executive KPI](images/executive_kpi.png)
 
 ### Monthly Trends
-![Monthly Trends](images/montly trends.png)
+![Monthly Trends](images/montly_trends.png)
 
 ### Service Comparison
-![Service Comparison](images/service comparison.png)
+![Service Comparison](images/service_comparison.png)
 
 ### Demand Heatmaps
-![Demand Heatmaps](images/demand heatmaps.png)
+![Demand Heatmaps](images/demand_heatmaps.png)
 
 ### Top Routes
-![Top Routes](images/top routes.png)
+![Top Routes](images/top_routes.png)
 
 ### Airport Traffic
-![Airport Traffic](images/airport traffic.png)
+![Airport Traffic](images/airport_traffic.png)
 
 ## Notes
 - **LocalStack** emulates AWS S3; only start if using LocalStack for local testing.
